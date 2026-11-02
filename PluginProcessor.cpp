@@ -1,77 +1,76 @@
-#include "PluginProcessor.h"
-#include "PluginEditor.h"
 
-static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
+#pragma once
+
+#include <JuceHeader.h>
+#include <array>
+#include <atomic>
+
+class VocalTuneAudioProcessor final : public juce::AudioProcessor
 {
-    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+public:
+    VocalTuneAudioProcessor();
+    ~VocalTuneAudioProcessor() override = default;
 
-    params.push_back (std::make_unique<juce::AudioParameterFloat>(
-        "correction", "Correction",
-        juce::NormalisableRange<float> (0.0f, 100.0f, 0.1f), 50.0f));
-    params.push_back (std::make_unique<juce::AudioParameterFloat>(
-        "speed", "Retune Speed",
-        juce::NormalisableRange<float> (1.0f, 500.0f, 1.0f, 0.35f), 80.0f));
-    params.push_back (std::make_unique<juce::AudioParameterFloat>(
-        "transition", "Transition",
-        juce::NormalisableRange<float> (0.0f, 500.0f, 1.0f), 80.0f));
+    void prepareToPlay (double sampleRate, int samplesPerBlock) override;
+    void releaseResources() override;
+    bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
 
-    params.push_back (std::make_unique<juce::AudioParameterChoice>(
-        "scale", "Scale",
-        juce::StringArray { "Chromatic", "Major", "Natural Minor" }, 0));
+    void processBlock (juce::AudioBuffer<float>&,
+                       juce::MidiBuffer&) override;
 
-    return { params.begin(), params.end() };
-}
+    juce::AudioProcessorEditor* createEditor() override;
+    bool hasEditor() const override { return true; }
 
-VocalTuneAudioProcessor::VocalTuneAudioProcessor()
-    : AudioProcessor (BusesProperties()
-        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
-      parameters (*this, nullptr, "VocalTuneParameters", createParameterLayout())
-{
-}
+    const juce::String getName() const override { return "VocalTune"; }
+    bool acceptsMidi() const override { return false; }
+    bool producesMidi() const override { return true; }
+    bool isMidiEffect() const override { return false; }
+    double getTailLengthSeconds() const override { return 0.0; }
 
-void VocalTuneAudioProcessor::prepareToPlay (double, int) {}
-void VocalTuneAudioProcessor::releaseResources() {}
+    int getNumPrograms() override { return 1; }
+    int getCurrentProgram() override { return 0; }
+    void setCurrentProgram (int) override {}
+    const juce::String getProgramName (int) override { return {}; }
+    void changeProgramName (int, const juce::String&) override {}
 
-bool VocalTuneAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
-{
-    const auto& input = layouts.getMainInputChannelSet();
-    const auto& output = layouts.getMainOutputChannelSet();
-    return input == output && (output == juce::AudioChannelSet::mono()
-                             || output == juce::AudioChannelSet::stereo());
-}
+    void getStateInformation (juce::MemoryBlock& destData) override;
+    void setStateInformation (const void* data, int sizeInBytes) override;
 
-void VocalTuneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
-                                             juce::MidiBuffer& midiMessages)
-{
-    juce::ScopedNoDenormals noDenormals;
-    midiMessages.clear();
+    juce::AudioProcessorValueTreeState parameters;
 
-    // Stage 1 is a transparent, safe audio pass-through.
-    // Pitch analysis and correction DSP will be added in later stages.
-    juce::ignoreUnused (buffer);
-}
+    // Pitch detection information
+    float getDetectedFrequency() const noexcept
+    {
+        return detectedFrequency.load();
+    }
 
-juce::AudioProcessorEditor* VocalTuneAudioProcessor::createEditor()
-{
-    return new VocalTuneAudioProcessorEditor (*this);
-}
+    int getDetectedMidiNote() const noexcept
+    {
+        return detectedMidiNote.load();
+    }
 
-void VocalTuneAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
-{
-    auto state = parameters.copyState();
-    std::unique_ptr<juce::XmlElement> xml (state.createXml());
-    copyXmlToBinary (*xml, destData);
-}
+    float getPitchConfidence() const noexcept
+    {
+        return pitchConfidence.load();
+    }
 
-void VocalTuneAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
-{
-    std::unique_ptr<juce::XmlElement> xml (getXmlFromBinary (data, sizeInBytes));
-    if (xml != nullptr && xml->hasTagName (parameters.state.getType()))
-        parameters.replaceState (juce::ValueTree::fromXml (*xml));
-}
+private:
+    static constexpr int analysisBufferSize = 2048;
 
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
-{
-    return new VocalTuneAudioProcessor();
-}
+    std::array<float, analysisBufferSize> pitchBuffer {};
+
+    int pitchWritePosition = 0;
+    int samplesSinceAnalysis = 0;
+
+    double currentSampleRate = 44100.0;
+
+    std::atomic<float> detectedFrequency { 0.0f };
+    std::atomic<int> detectedMidiNote { -1 };
+    std::atomic<float> pitchConfidence { 0.0f };
+
+    void analysePitchBuffer() noexcept;
+    float estimatePitch() noexcept;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR
+        (VocalTuneAudioProcessor)
+};
