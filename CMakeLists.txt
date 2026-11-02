@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
 
+# JUCE framework
 FetchContent_Declare(
     JUCE
     GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
@@ -15,6 +16,21 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(JUCE)
+
+# Signalsmith pitch-shifting engine
+FetchContent_Declare(
+    signalsmith_stretch
+    GIT_REPOSITORY https://github.com/Signalsmith-Audio/signalsmith-stretch.git
+    GIT_TAG main
+    GIT_SHALLOW TRUE
+    GIT_SUBMODULES ""
+)
+
+FetchContent_GetProperties(signalsmith_stretch)
+
+if(NOT signalsmith_stretch_POPULATED)
+    FetchContent_Populate(signalsmith_stretch)
+endif()
 
 juce_add_plugin(VocalTune
     COMPANY_NAME "VocalTune"
@@ -38,6 +54,12 @@ target_sources(VocalTune
         PluginProcessor.h
         PluginEditor.cpp
         PluginEditor.h
+)
+
+target_include_directories(VocalTune
+    PRIVATE
+        "${signalsmith_stretch_SOURCE_DIR}"
+        "${signalsmith_stretch_SOURCE_DIR}/include"
 )
 
 target_compile_definitions(VocalTune
