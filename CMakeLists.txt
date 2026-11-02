@@ -17,7 +17,17 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(JUCE)
 
-# Signalsmith pitch-shifting engine
+# Signalsmith Linear dependency
+FetchContent_Declare(
+    signalsmith_linear
+    GIT_REPOSITORY https://github.com/Signalsmith-Audio/linear.git
+    GIT_TAG main
+    GIT_SHALLOW TRUE
+)
+
+FetchContent_MakeAvailable(signalsmith_linear)
+
+# Signalsmith Stretch pitch-shifting engine
 FetchContent_Declare(
     signalsmith_stretch
     GIT_REPOSITORY https://github.com/Signalsmith-Audio/signalsmith-stretch.git
@@ -59,7 +69,6 @@ target_sources(VocalTune
 target_include_directories(VocalTune
     PRIVATE
         "${signalsmith_stretch_SOURCE_DIR}"
-        "${signalsmith_stretch_SOURCE_DIR}/include"
 )
 
 target_compile_definitions(VocalTune
@@ -72,6 +81,7 @@ target_compile_definitions(VocalTune
 target_link_libraries(VocalTune
     PRIVATE
         juce::juce_audio_utils
+        signalsmith-linear
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
