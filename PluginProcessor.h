@@ -1,8 +1,9 @@
+
 #pragma once
 
 #include <JuceHeader.h>
 
-class VocalTuneAudioProcessor final : public juce::AudioProcessor
+class VocalTuneAudioProcessor : public juce::AudioProcessor
 {
 public:
     VocalTuneAudioProcessor();
@@ -11,31 +12,33 @@ public:
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
-    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
-
     void processBlock(
         juce::AudioBuffer<float>&,
         juce::MidiBuffer&) override;
 
     juce::AudioProcessorEditor* createEditor() override;
-    bool hasEditor() const override { return true; }
+    bool hasEditor() const override;
 
-    const juce::String getName() const override { return "VocalTune"; }
+    const juce::String getName() const override;
 
-    bool acceptsMidi() const override { return false; }
-    bool producesMidi() const override { return false; }
-    bool isMidiEffect() const override { return false; }
+    bool acceptsMidi() const override;
+    bool producesMidi() const override;
+    bool isMidiEffect() const override;
 
-    double getTailLengthSeconds() const override { return 0.0; }
+    double getTailLengthSeconds() const override;
 
-    int getNumPrograms() override { return 1; }
-    int getCurrentProgram() override { return 0; }
-    void setCurrentProgram(int) override {}
-    const juce::String getProgramName(int) override { return {}; }
-    void changeProgramName(int, const juce::String&) override {}
+    int getNumPrograms() override;
+    int getCurrentProgram() override;
+    void setCurrentProgram(int) override;
+    const juce::String getProgramName(int) override;
+    void changeProgramName(int, const juce::String&) override;
 
-    void getStateInformation(juce::MemoryBlock& destData) override;
-    void setStateInformation(const void* data, int sizeInBytes) override;
+    void getStateInformation(
+        juce::MemoryBlock& destinationData) override;
+
+    void setStateInformation(
+        const void* data,
+        int sizeInBytes) override;
 
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(
