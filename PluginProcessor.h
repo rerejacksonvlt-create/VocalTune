@@ -1,5 +1,9 @@
+
 #pragma once
+
 #include <JuceHeader.h>
+#include <array>
+#include <atomic>
 
 class VocalTuneAudioProcessor final : public juce::AudioProcessor
 {
@@ -10,7 +14,9 @@ public:
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
-    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
+    void processBlock (juce::AudioBuffer<float>&,
+                       juce::MidiBuffer&) override;
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
@@ -32,6 +38,39 @@ public:
 
     juce::AudioProcessorValueTreeState parameters;
 
+    // Pitch detection information
+    float getDetectedFrequency() const noexcept
+    {
+        return detectedFrequency.load();
+    }
+
+    int getDetectedMidiNote() const noexcept
+    {
+        return detectedMidiNote.load();
+    }
+
+    float getPitchConfidence() const noexcept
+    {
+        return pitchConfidence.load();
+    }
+
 private:
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VocalTuneAudioProcessor)
+    static constexpr int analysisBufferSize = 2048;
+
+    std::array<float, analysisBufferSize> pitchBuffer {};
+
+    int pitchWritePosition = 0;
+    int samplesSinceAnalysis = 0;
+
+    double currentSampleRate = 44100.0;
+
+    std::atomic<float> detectedFrequency { 0.0f };
+    std::atomic<int> detectedMidiNote { -1 };
+    std::atomic<float> pitchConfidence { 0.0f };
+
+    void analysePitchBuffer() noexcept;
+    float estimatePitch() noexcept;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR
+        (VocalTuneAudioProcessor)
 };
