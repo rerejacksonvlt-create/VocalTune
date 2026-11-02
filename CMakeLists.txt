@@ -30,7 +30,7 @@ juce_add_plugin(VocalTune
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
 )
 
-target_sources(VocalTune
+target_sources(VocalTune)
     PRIVATE
         PluginProcessor.cpp
         PluginProcessor.h
