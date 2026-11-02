@@ -66,18 +66,19 @@ VocalTuneAudioProcessorEditor::VocalTuneAudioProcessorEditor(
         accentColour);
 
     importButton.setColour(
-        juce::TextButton::textColourOffId,
-        textColour);
+    juce::TextButton::buttonColourId,
+    accentColour);
 
-    importButton.setFont(
-        juce::Font(juce::FontOptions(14.0f)));
+importButton.setColour(
+    juce::TextButton::textColourOffId,
+    textColour);
 
-    importButton.onClick = [this]
-    {
-        openFileChooser();
-    };
+importButton.onClick = [this]
+{
+    openFileChooser();
+};
 
-    addAndMakeVisible(importButton);
+addAndMakeVisible(importButton);
 
     statusLabel.setText(
         "IMPORT A VOCAL FILE TO BEGIN",
